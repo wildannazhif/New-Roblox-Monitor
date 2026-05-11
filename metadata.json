@@ -1,0 +1,6 @@
+{
+  "name": "Eldorado Sales Dashboard",
+  "description": "Visualize sales data from Eldorado export files with GMT+7 timezone support, charts, and detailed analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
