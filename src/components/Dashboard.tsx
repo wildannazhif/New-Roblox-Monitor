@@ -51,13 +51,37 @@ export default function Dashboard() {
     if (!user) return;
     const fetchOrders = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id);
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        if (error) {
+          console.error("Error fetching orders:", error);
+          break;
+        }
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
       
-      if (data && data.length > 0) {
-        const parsed: EldoradoOrder[] = data.map((row: any) => ({
+      if (allData.length > 0) {
+        const parsed: EldoradoOrder[] = allData.map((row: any) => ({
           ...row,
           parsedDate: parseISO(row.parsedDate),
           localDate: parseISO(row.localDate)
@@ -162,11 +186,17 @@ export default function Dashboard() {
                 localDate: o.localDate.toISOString()
               }));
 
-              const { error } = await supabase.from('orders').upsert(payload, { onConflict: 'user_id,"orderId"' });
-              
-              if (error) {
-                console.error("Error saving to database:", error);
-                alert("Database Error: " + error.message);
+              let hasError = false;
+              const chunkSize = 500;
+              for (let i = 0; i < payload.length; i += chunkSize) {
+                const chunk = payload.slice(i, i + chunkSize);
+                const { error } = await supabase.from('orders').upsert(chunk, { onConflict: 'user_id,"orderId"' });
+                if (error) {
+                  console.error("Error saving chunk to database:", error);
+                  alert("Database Error: " + error.message);
+                  hasError = true;
+                  break;
+                }
               }
 
               setOrders(prev => {
