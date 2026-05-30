@@ -29,4 +29,5 @@ export interface SalesSummary {
   averageOrderValue: number;
   successRate: number;
   averageDailyTransactions: number;
+  averageDailyRevenue: number;
 }
